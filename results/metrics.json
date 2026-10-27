@@ -666,88 +666,235 @@
     "logreg_l2": 0.6739350027367269,
     "random_forest": 0.747831717457098
   },
-  "time_holdout_top10_fixed_from_train_period": {
+  "time_holdout_top10_sensors": {
     "logreg_l1": {
-      "roc_auc": 0.5728516978516979,
-      "pr_auc": 0.092465424374871,
-      "n_test": 470,
-      "n_test_fail": 26,
-      "best_params": {
-        "model__C": 0.1
-      },
-      "recall_at_fpr10_roc": 0.11538461538461539,
-      "recall_at_fpr10_trainthr": 0.0,
-      "realised_fpr10_trainthr": 0.0022522522522522522,
-      "recall_at_fpr5_roc": 0.11538461538461539,
-      "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0,
-      "sensors": [
-        "S060",
-        "S432",
+      "final_refit_on_training_period": [
         "S022",
-        "S437",
-        "S436",
-        "S431",
-        "S435",
         "S029",
-        "S164",
-        "S299"
+        "S060",
+        "S104",
+        "S431",
+        "S432",
+        "S435",
+        "S436",
+        "S437",
+        "S511"
+      ],
+      "selection_frequency_over_train_period_cv_top10": [
+        {
+          "sensor": "S060",
+          "col_index_1based": 60,
+          "selection_frequency": 1.0,
+          "mean_importance": 0.45820362189308117
+        },
+        {
+          "sensor": "S432",
+          "col_index_1based": 432,
+          "selection_frequency": 0.8,
+          "mean_importance": 0.001686288904802356
+        },
+        {
+          "sensor": "S022",
+          "col_index_1based": 22,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.14618568706090826
+        },
+        {
+          "sensor": "S431",
+          "col_index_1based": 431,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.0
+        },
+        {
+          "sensor": "S435",
+          "col_index_1based": 435,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.0
+        },
+        {
+          "sensor": "S436",
+          "col_index_1based": 436,
+          "selection_frequency": 0.5333333333333333,
+          "mean_importance": 0.01142010241126291
+        },
+        {
+          "sensor": "S437",
+          "col_index_1based": 437,
+          "selection_frequency": 0.5333333333333333,
+          "mean_importance": 0.0
+        },
+        {
+          "sensor": "S104",
+          "col_index_1based": 104,
+          "selection_frequency": 0.4666666666666667,
+          "mean_importance": 0.01589540478886244
+        },
+        {
+          "sensor": "S438",
+          "col_index_1based": 438,
+          "selection_frequency": 0.4,
+          "mean_importance": 0.021953355727438624
+        },
+        {
+          "sensor": "S029",
+          "col_index_1based": 29,
+          "selection_frequency": 0.3333333333333333,
+          "mean_importance": 0.05813925281379035
+        }
       ]
     },
     "logreg_l2": {
-      "roc_auc": 0.5724185724185725,
-      "pr_auc": 0.09596135056734642,
-      "n_test": 470,
-      "n_test_fail": 26,
-      "best_params": {
-        "model__C": 0.01
-      },
-      "recall_at_fpr10_roc": 0.11538461538461539,
-      "recall_at_fpr10_trainthr": 0.0,
-      "realised_fpr10_trainthr": 0.0,
-      "recall_at_fpr5_roc": 0.11538461538461539,
-      "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0,
-      "sensors": [
-        "S060",
-        "S432",
+      "final_refit_on_training_period": [
         "S022",
+        "S029",
+        "S060",
+        "S104",
         "S431",
+        "S432",
+        "S435",
         "S436",
         "S437",
-        "S435",
-        "S029",
-        "S164",
-        "S299"
+        "S511"
+      ],
+      "selection_frequency_over_train_period_cv_top10": [
+        {
+          "sensor": "S060",
+          "col_index_1based": 60,
+          "selection_frequency": 1.0,
+          "mean_importance": 0.29830509801830535
+        },
+        {
+          "sensor": "S432",
+          "col_index_1based": 432,
+          "selection_frequency": 0.8,
+          "mean_importance": 0.06174173631992697
+        },
+        {
+          "sensor": "S022",
+          "col_index_1based": 22,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.11079276244702553
+        },
+        {
+          "sensor": "S431",
+          "col_index_1based": 431,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.032987217019582835
+        },
+        {
+          "sensor": "S435",
+          "col_index_1based": 435,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.025855079062277134
+        },
+        {
+          "sensor": "S436",
+          "col_index_1based": 436,
+          "selection_frequency": 0.5333333333333333,
+          "mean_importance": 0.04305113695069565
+        },
+        {
+          "sensor": "S437",
+          "col_index_1based": 437,
+          "selection_frequency": 0.5333333333333333,
+          "mean_importance": 0.029707332264495158
+        },
+        {
+          "sensor": "S104",
+          "col_index_1based": 104,
+          "selection_frequency": 0.4666666666666667,
+          "mean_importance": 0.025922584825611345
+        },
+        {
+          "sensor": "S438",
+          "col_index_1based": 438,
+          "selection_frequency": 0.4,
+          "mean_importance": 0.023351431222385335
+        },
+        {
+          "sensor": "S029",
+          "col_index_1based": 29,
+          "selection_frequency": 0.3333333333333333,
+          "mean_importance": 0.04761914634548222
+        }
       ]
     },
     "random_forest": {
-      "roc_auc": 0.5927754677754677,
-      "pr_auc": 0.09818918102673678,
-      "n_test": 470,
-      "n_test_fail": 26,
-      "best_params": {
-        "model__min_samples_leaf": 5
-      },
-      "recall_at_fpr10_roc": 0.15384615384615385,
-      "recall_at_fpr10_trainthr": 0.0,
-      "realised_fpr10_trainthr": 0.009009009009009009,
-      "recall_at_fpr5_roc": 0.15384615384615385,
-      "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0022522522522522522,
-      "sensors": [
-        "S060",
-        "S029",
-        "S432",
-        "S431",
-        "S130",
-        "S104",
+      "final_refit_on_training_period": [
         "S022",
-        "S511",
+        "S029",
+        "S060",
+        "S104",
+        "S431",
+        "S432",
         "S435",
-        "S437"
+        "S436",
+        "S437",
+        "S511"
+      ],
+      "selection_frequency_over_train_period_cv_top10": [
+        {
+          "sensor": "S060",
+          "col_index_1based": 60,
+          "selection_frequency": 1.0,
+          "mean_importance": 0.2836496419202868
+        },
+        {
+          "sensor": "S432",
+          "col_index_1based": 432,
+          "selection_frequency": 0.8,
+          "mean_importance": 0.06434472243917155
+        },
+        {
+          "sensor": "S022",
+          "col_index_1based": 22,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.059272422540671894
+        },
+        {
+          "sensor": "S435",
+          "col_index_1based": 435,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.04619608817608368
+        },
+        {
+          "sensor": "S431",
+          "col_index_1based": 431,
+          "selection_frequency": 0.6,
+          "mean_importance": 0.04375307408629463
+        },
+        {
+          "sensor": "S437",
+          "col_index_1based": 437,
+          "selection_frequency": 0.5333333333333333,
+          "mean_importance": 0.03700618912173151
+        },
+        {
+          "sensor": "S436",
+          "col_index_1based": 436,
+          "selection_frequency": 0.5333333333333333,
+          "mean_importance": 0.03465628870208207
+        },
+        {
+          "sensor": "S104",
+          "col_index_1based": 104,
+          "selection_frequency": 0.4666666666666667,
+          "mean_importance": 0.050907502402771865
+        },
+        {
+          "sensor": "S438",
+          "col_index_1based": 438,
+          "selection_frequency": 0.4,
+          "mean_importance": 0.03121307567784096
+        },
+        {
+          "sensor": "S029",
+          "col_index_1based": 29,
+          "selection_frequency": 0.3333333333333333,
+          "mean_importance": 0.0430429779304428
+        }
       ]
     }
   },
-  "runtime_seconds": 185.4
+  "runtime_seconds": 167.7
 }

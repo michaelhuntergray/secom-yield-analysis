@@ -50,9 +50,7 @@ With 26 test fails, one fail is 3.8 percentage points. The 34.6% for logistic L2
 
 ### Top-10 sensors
 
-Two honest versions of "only 10 sensors":
-
-- **In-fold top-10** (feature selection fixed to k=10 inside every fold or in the training period):
+"Only 10 sensors" is tested with the selection step set to k=10 inside the pipeline, so the 10 sensors are re-chosen from the training part of every fold (and of every inner tuning and threshold-calibration fold) and no validation label shapes the choice. An earlier version fixed a sensor list from the whole training period and reused it in inner folds; a review showed that leaks validation labels into selection, so it was removed.
 
 | Model | CV ROC-AUC | CV recall @ 10% FPR (train threshold) | CV realised FPR | Time-holdout ROC-AUC |
 |---|---|---|---|---|
@@ -60,9 +58,9 @@ Two honest versions of "only 10 sensors":
 | Logistic L2 | 0.708 | 29.6% | 11.3% | 0.681 |
 | Random forest | 0.706 | 27.5% | 9.4% | 0.594 |
 
-- **Ten sensors fixed from the training period only** (ranked by selection frequency over a 5x3 CV of the earliest 70%), then tested on the latest 30%: ROC-AUC 0.573 (L1), 0.572 (L2), 0.593 (random forest); train-threshold recall 0.0% for all three.
+The sensors that final training-period refit picked (same for all three models): S022, S029, S060, S104, S431, S432, S435, S436, S437 and S511. Across 5x3 CV folds of the training period, S060 was picked in 100% of folds and S432 in 80%; per-model frequencies are in `results/metrics.json` (`time_holdout_top10_sensors`). These lists are descriptive and are not scored.
 
-Reading: in cross-validation, 10 sensors do about as well as the tuned 20-to-60-sensor models (for the random forest, 27.5% of fails at a 9.4% realised false-alarm rate, std 7.6 points). In the time-ordered test, 10 sensors do not catch fails reliably either. I do not claim a working 10-sensor detector.
+Reading: in cross-validation, 10 sensors do about as well as the tuned 20-to-60-sensor models (for the random forest, 27.5% of fails at a 9.4% realised false-alarm rate, std 7.6 points). In the time-ordered test, 10 sensors do not catch fails reliably either (train-threshold recall 0.0% for all three models). I do not claim a working 10-sensor detector.
 
 ### Sensor ranking
 
@@ -91,7 +89,7 @@ Evaluation:
 uv venv && uv pip install -r requirements.txt && .venv/bin/python analysis.py
 ```
 
-Downloads SECOM from UCI at runtime into `data/` (gitignored; raw data is not committed). On a 16-core machine a full run took 185.4 seconds. Tested with Python 3.12.
+Downloads SECOM from UCI at runtime into `data/` (gitignored; raw data is not committed). On a 16-core machine a full run took 167.7 seconds. Tested with Python 3.12.
 
 ## Limits
 

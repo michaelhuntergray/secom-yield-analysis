@@ -151,14 +151,6 @@ def build(name, k=None):
     return pipe, grid
 
 
-def build_fixed(name):
-    """Pipeline for a fixed column subset: no filter/select, same model grid."""
-    make, grid = MODELS[name]
-    pipe = Pipeline([("impute", SimpleImputer(strategy="median")),
-                     ("scale", StandardScaler()), ("model", make())])
-    return pipe, dict(grid)
-
-
 def score(est, X):
     m = est.named_steps["model"]
     return est.decision_function(X) if isinstance(m, LogisticRegression) \
@@ -286,20 +278,13 @@ def bootstrap_auc_ci(name, X, y, k, n_boot=1000):
     return [float(np.percentile(aucs, 2.5)), float(np.percentile(aucs, 97.5))]
 
 
-def fixed_top10_holdout(name, X, y, seed=SEED):
-    """Rank sensors on the training period only (selection frequency over a
-    5x3 repeated CV of that period), then fit on those 10 sensors and test on
-    the later period. No test-period data touches the ranking."""
+def top10_selection_report(name, X, y):
+    """Descriptive only, nothing here is scored: how often each sensor is picked
+    by the in-pipeline k=10 selector across 5x3 CV folds of the training period
+    (selection is refitted inside every fold)."""
     n_tr = int(round(TRAIN_FRAC * len(y)))
-    Xtr, ytr = X[:n_tr], y[:n_tr]
-    folds = run_cv(name, Xtr, ytr, k=None, n_repeats=3)
-    top = sensor_ranking(folds, X.shape[1], top=10)
-    cols = [t["col_index_1based"] - 1 for t in top]
-    pipe, grid = build_fixed(name)
-    res = fit_and_eval(pipe, grid, Xtr[:, cols], ytr, X[n_tr:][:, cols], y[n_tr:], seed,
-                       orig_cols=cols)
-    res["sensors"] = [t["sensor"] for t in top]
-    return res
+    folds = run_cv(name, X[:n_tr], y[:n_tr], k=10, n_repeats=3)
+    return sensor_ranking(folds, X.shape[1], top=10)
 
 
 # ------------------------------------------------------------------ charts
@@ -449,14 +434,18 @@ def main():
         f"{n_tr_sel} (training-period) wafers only; no test-period label is used")
     metrics["time_holdout_headline_selection_cv_roc_auc"] = sel_auc
     th_curves = {}
-    metrics["time_holdout_top10_fixed_from_train_period"] = {}
+    metrics["time_holdout_top10_sensors"] = {}
     for name in MODELS:
         r = time_holdout(name, X, y, None)
         r["roc_auc_95ci_bootstrap_test_wafers"] = bootstrap_auc_ci(name, X, y, None)
         th_curves[name] = (np.array(r["_tpr_grid"]), None)
         metrics["time_holdout"][name] = r
-        metrics["time_holdout_top10_infold"][name] = time_holdout(name, X, y, 10)
-        metrics["time_holdout_top10_fixed_from_train_period"][name] = fixed_top10_holdout(name, X, y)
+        r10 = time_holdout(name, X, y, 10)
+        metrics["time_holdout_top10_infold"][name] = r10
+        metrics["time_holdout_top10_sensors"][name] = {
+            "final_refit_on_training_period": [f"S{j + 1:03d}" for j in r10["_orig"]],
+            "selection_frequency_over_train_period_cv_top10": top10_selection_report(name, X, y),
+        }
         print(f"time holdout {name}: AUC {r['roc_auc']:.3f}")
 
     chart_roc(curves_cv, th_curves, headline, headline_th, OUT_DIR / "roc_recall_vs_false_alarm.png")

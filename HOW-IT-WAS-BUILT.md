@@ -22,16 +22,16 @@ L1 and L2 logistic regression and a random forest, `class_weight` for imbalance,
 The CV headline is the model with the best mean ROC-AUC over the 5x5 CV on all wafers, a different metric from the headline recall; all three models are reported. Rejected: picking by the headline recall itself. Review (Codex) found that this choice used labels from the 470 holdout wafers, so the holdout headline is chosen separately, by 5x5 CV on the earliest 1,097 wafers only. Both picked the random forest.
 **Status:** verified. `headline_model_rule`, `time_holdout_headline_model` and `time_holdout_headline_model_rule` in `results/metrics.json`.
 
-## 6. Two clean top-10 tests instead of one
-A top-10 chosen from full-data CV and re-tested on the same data would be optimistic. So: (a) k=10 fixed inside every fold; (b) ten sensors ranked using only the training period, then tested on the later period. Consequence: the top-10 claim is limited to CV, and fails in the time-ordered test.
-**Status:** verified. `cv_top10_infold`, `time_holdout_top10_infold`, `time_holdout_top10_fixed_from_train_period` in `results/metrics.json`.
+## 6. Top-10 sensors selected inside the folds only
+A top-10 chosen from full-data CV and re-tested on the same data would be optimistic, so selection is a pipeline step (k=10) refitted in every fold. A second variant (ten sensors fixed from the training period, then reused in inner tuning and threshold calibration) was built first and removed after review: the fixed list had seen the labels of the inner validation folds. Rejected: keeping it with a caveat. The sensor lists are now reported as descriptive selection frequencies and a final refit. Consequence: the top-10 claim is limited to CV, and fails in the time-ordered test. An audit of the rest of the code for the same pattern (selection fitted on data a later step validates on) found none; the remaining soft spots are that hyperparameters tuned on a training part are also used to calibrate thresholds on that part, and that the CV headline model was chosen on the same CV it is reported from (all three models are shown).
+**Status:** verified. `cv_top10_infold`, `time_holdout_top10_infold`, `time_holdout_top10_sensors` in `results/metrics.json`; `analysis.py` has no fixed-list code path.
 
 ## 7. The negative time-holdout result is reported, not hidden
 The time-ordered holdout shows near-chance performance. The README leads with both findings. Rejected: leading only with the CV number.
 **Status:** verified. README "Headline" and `results/metrics.json` `time_holdout`.
 
 ## 8. Reproducibility
-Pinned versions in `requirements.txt`, fixed seed 42, runtime download into a gitignored `data/`. The first version was not fully deterministic: liblinear (L1 logistic) had no random_state and its holdout ROC-AUC moved in the third decimal between runs. Fixed by seeding it. Two full runs afterwards produced identical `results/metrics.json` apart from runtime (about 185 seconds on 16 cores).
+Pinned versions in `requirements.txt`, fixed seed 42, runtime download into a gitignored `data/`. The first version was not fully deterministic: liblinear (L1 logistic) had no random_state and its holdout ROC-AUC moved in the third decimal between runs. Fixed by seeding it. Two full runs afterwards produced identical `results/metrics.json` apart from runtime (about 170 to 185 seconds on 16 cores).
 **Status:** verified. Dictionary comparison of two runs' metrics, runtime excluded.
 
 ## 9. A scikit-learn deprecation fixed
