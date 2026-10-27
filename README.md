@@ -8,7 +8,7 @@ A leakage-safe, reproducible attempt to flag failing wafers from process sensor 
 
 **Repeated stratified 5-fold CV (5x5) with nested model selection: 29.0% of failing wafers caught at a 10.7% realised false-alarm rate** (mean over 25 folds, std 16.3 points; a random flagger would catch about the same share as its false-alarm rate, so roughly 10.7%). At a 5% target it catches 16.9% (std 13.2) at a 5.2% realised false-alarm rate. In every outer fold an inner CV on that fold's training part picked among logistic L1, logistic L2 and the random forest, and the outer fold scored only the pick; the random forest was picked in 20 of 25 folds, L1 in 3 and L2 in 2.
 
-**That edge does not survive a time-ordered holdout.** Training on the earliest 70% of wafers and testing on the latest 30% (26 fails), the models are close to chance (ROC-AUC 0.536 to 0.584, with wide intervals that include 0.5), and thresholds set on a later slice of the training period caught 3.8% to 26.9% of fails while flagging 7.7% to 20.0% of good wafers, which is about what chance gives. The holdout headline model is the random forest (ROC-AUC 0.548, 95% interval 0.444 to 0.645), chosen using training-period wafers only (see below). Wafer processes drift, so the time-ordered result is the one to believe. See the tables below.
+**That edge does not survive a time-ordered holdout.** Training on the earliest 70% of wafers and testing on the latest 30% (26 fails), the models are close to chance (ROC-AUC 0.536 to 0.584, with wide intervals that include 0.5), and thresholds set on a later slice of the training period caught 3.8% to 26.9% of fails while flagging 7.7% to 20.0% of good wafers, which is about what chance gives. The holdout headline model is the random forest (ROC-AUC 0.548, 95% interval 0.444 to 0.645), chosen using training-period wafers only (see below). Random CV mixes time periods and the time-ordered split does not, so the time-ordered result is the one to believe; the cause of the gap (for example process drift) was not tested. See the tables below.
 
 ## Charts
 
@@ -92,13 +92,13 @@ Evaluation:
 uv venv && uv pip install -r requirements.txt && .venv/bin/python analysis.py
 ```
 
-Downloads SECOM from UCI at runtime into `data/` (gitignored; raw data is not committed). On a 16-core machine a full run took 477.7 seconds. Tested with Python 3.12.
+Downloads SECOM from UCI at runtime into `data/` (gitignored; raw data is not committed). On a 16-core machine a full run took 481.9 seconds. Tested with Python 3.12.
 
 ## Limits
 
 - Only 104 fails (26 in the time-holdout test, 6 in the threshold-calibration slice), so every estimate is noisy. CV std is 6 to 16 points on recall.
 - Sensors are anonymised, so nothing here is a physical interpretation. Adjacent columns (S431, S432, S435, S436, S437) rank together, which probably reflects correlated measurements, not 5 independent causes.
-- The data comes from one process over about three months and may drift (the fail rate swings visibly between periods; see the fail-rate chart, and note the train and test periods have different base rates). CV mixes time periods, so it is optimistic. The time-ordered holdout is the honest figure.
+- The data comes from one process over about three months and may drift (the fail rate swings visibly between periods; see the fail-rate chart, and note the train and test periods have different base rates). CV mixes time periods, which can make it optimistic. The time-ordered holdout is the honest figure. Retraining on a moving window and drift monitoring are untested ideas, not results.
 - The ROC-curve recall columns choose their threshold with the test labels, so they are not directly comparable with the train-threshold figures, whose realised false-alarm rate varies.
 - Hyperparameter grids are small on purpose. A bigger search might move the numbers; I did not test that.
 - This is an analysis of a public benchmark. It has not been used in production.

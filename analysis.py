@@ -166,8 +166,16 @@ def method_for(pipe):
 # ----------------------------------------------------------------- metrics
 def recall_at_fpr_oracle(y, s, fpr_t):
     """Max recall with test-fold FPR <= fpr_t, read off the test ROC curve."""
-    fpr, tpr, _ = roc_curve(y, s)
+    # drop_intermediate=False: the default can drop the best point under the target
+    fpr, tpr, _ = roc_curve(y, s, drop_intermediate=False)
     return float(tpr[fpr <= fpr_t].max())
+
+
+def _self_check():
+    """Tie case where the default roc_curve point dropping loses the best point:
+    1/3 recall is achievable at FPR 0.5."""
+    r = recall_at_fpr_oracle(np.array([1, 0, 1, 0, 1, 0]), np.array([3, 3, 2, 2, 1, 1]), 0.5)
+    assert abs(r - 1 / 3) < 1e-12, r
 
 
 def fit_and_eval(pipe, grid, Xtr, ytr, Xte, yte, seed, orig_cols=None):
@@ -208,7 +216,7 @@ def _score_part(gs, best, yte, s_te, neg):
         alarm = s_te > thr
         res[f"recall_at_fpr{tag}_trainthr"] = float(alarm[yte == 1].mean())
         res[f"realised_fpr{tag}_trainthr"] = float(alarm[yte == 0].mean())
-    fpr, tpr, _ = roc_curve(yte, s_te)
+    fpr, tpr, _ = roc_curve(yte, s_te, drop_intermediate=False)
     res["_tpr_grid"] = np.interp(FPR_GRID, fpr, tpr).tolist()
     # which original columns were used and how important were they
     kept = np.flatnonzero(best.named_steps["filter"].support_)
@@ -389,6 +397,7 @@ def strip(o):
 
 def main():
     t0 = time.time()
+    _self_check()
     OUT_DIR.mkdir(exist_ok=True)
     X, y, ts = load()
     n, p = X.shape
