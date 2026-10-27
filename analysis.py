@@ -38,6 +38,7 @@ from sklearn.preprocessing import StandardScaler
 SEED = 42
 N_SPLITS, N_REPEATS = 5, 5
 TRAIN_FRAC = 0.70
+CAL_SPLIT = 0.80  # earliest share of the training period used to fit; the rest calibrates thresholds
 FPR_TARGETS = (0.10, 0.05)
 N_JOBS = 16
 ROOT = Path(__file__).resolve().parent
@@ -184,7 +185,15 @@ def fit_and_eval(pipe, grid, Xtr, ytr, Xte, yte, seed, orig_cols=None):
                             cv=StratifiedKFold(5, shuffle=True, random_state=seed + 1))
     if oof.ndim == 2:
         oof = oof[:, 1]
-    neg = oof[ytr == 0]
+    res = _score_part(gs, best, yte, s_te, oof[ytr == 0])
+    # inner-CV ROC-AUC of the tuned configuration, used only for nested model selection
+    res["inner_cv_roc_auc"] = float(gs.best_score_)
+    return res
+
+
+def _score_part(gs, best, yte, s_te, neg):
+    """Metrics of one fitted model on a held-out part, with thresholds taken
+    from `neg` (scores of passing wafers that the model did not train on)."""
     res = {
         "roc_auc": float(roc_auc_score(yte, s_te)),
         "pr_auc": float(average_precision_score(yte, s_te)),
@@ -202,16 +211,14 @@ def fit_and_eval(pipe, grid, Xtr, ytr, Xte, yte, seed, orig_cols=None):
     fpr, tpr, _ = roc_curve(yte, s_te)
     res["_tpr_grid"] = np.interp(FPR_GRID, fpr, tpr).tolist()
     # which original columns were used and how important were they
-    if orig_cols is None:
-        kept = np.flatnonzero(best.named_steps["filter"].support_)
-        sel = best.named_steps["select"].get_support(indices=True)
-        orig = kept[sel]
-    else:
-        orig = np.asarray(orig_cols)
+    kept = np.flatnonzero(best.named_steps["filter"].support_)
+    sel = best.named_steps["select"].get_support(indices=True)
+    orig = kept[sel]
     m = best.named_steps["model"]
     imp = np.abs(m.coef_.ravel()) if isinstance(m, LogisticRegression) else m.feature_importances_
     imp = imp / imp.sum() if imp.sum() > 0 else imp
     res["_orig"], res["_imp"] = orig.tolist(), imp.tolist()
+    res["_s_te"] = s_te
     return res
 
 
@@ -256,21 +263,33 @@ def mean_curve(folds):
 
 # ------------------------------------------------------------- time holdout
 def time_holdout(name, X, y, k, seed=SEED):
+    """Time-ordered holdout with a time-ordered calibration split inside the
+    training period: tune and fit on the earliest CAL_SPLIT of the training
+    wafers, set the FPR thresholds on the remaining (latest) training wafers
+    with that same fitted model, then apply model and thresholds unchanged to
+    the test period."""
     n_tr = int(round(TRAIN_FRAC * len(y)))
+    n_fit = int(round(CAL_SPLIT * n_tr))
     pipe, grid = build(name, k)
-    res = fit_and_eval(pipe, grid, X[:n_tr], y[:n_tr], X[n_tr:], y[n_tr:], seed)
-    res["n_train"], res["n_train_fail"] = n_tr, int(y[:n_tr].sum())
+    gs = GridSearchCV(pipe, grid, scoring="roc_auc",
+                      cv=StratifiedKFold(3, shuffle=True, random_state=seed),
+                      n_jobs=1, refit=True)
+    gs.fit(X[:n_fit], y[:n_fit])
+    best = gs.best_estimator_
+    s_cal = score(best, X[n_fit:n_tr])
+    res = _score_part(gs, best, y[n_tr:], score(best, X[n_tr:]),
+                      s_cal[y[n_fit:n_tr] == 0])
+    res["n_fit"], res["n_fit_fail"] = n_fit, int(y[:n_fit].sum())
+    res["n_calibration"], res["n_calibration_fail"] = n_tr - n_fit, int(y[n_fit:n_tr].sum())
+    res["n_train_period"], res["n_train_period_fail"] = n_tr, int(y[:n_tr].sum())
     return res
 
 
-def bootstrap_auc_ci(name, X, y, k, n_boot=1000):
-    """95% bootstrap CI of the holdout ROC-AUC (resampling test wafers only)."""
+def bootstrap_auc_ci(res, y, n_boot=1000):
+    """95% bootstrap CI of the holdout ROC-AUC (resampling test wafers only,
+    scores of the very model that was evaluated)."""
     n_tr = int(round(TRAIN_FRAC * len(y)))
-    pipe, grid = build(name, k)
-    gs = GridSearchCV(pipe, grid, scoring="roc_auc",
-                      cv=StratifiedKFold(3, shuffle=True, random_state=SEED), n_jobs=1)
-    gs.fit(X[:n_tr], y[:n_tr])
-    s, yt = score(gs.best_estimator_, X[n_tr:]), y[n_tr:]
+    s, yt = res["_s_te"], y[n_tr:]
     rng = np.random.default_rng(SEED)
     aucs = []
     while len(aucs) < n_boot:
@@ -290,8 +309,9 @@ def top10_selection_report(name, X, y):
 
 
 # ------------------------------------------------------------------ charts
-COL = {"logreg_l1": "#1f77b4", "logreg_l2": "#2ca02c", "random_forest": "#d62728"}
-LAB = {"logreg_l1": "Logistic L1", "logreg_l2": "Logistic L2", "random_forest": "Random forest"}
+COL = {"logreg_l1": "#1f77b4", "logreg_l2": "#2ca02c", "random_forest": "#d62728", "nested": "#000000"}
+LAB = {"logreg_l1": "Logistic L1", "logreg_l2": "Logistic L2", "random_forest": "Random forest",
+       "nested": "Nested model selection (headline)"}
 
 
 def chart_roc(cv_curves, th_curves, headline, headline_th, path):
@@ -335,7 +355,7 @@ def chart_sensors(top, headline, path):
     for ax in axes:
         ax.grid(axis="x", alpha=0.25)
     axes[0].set_ylabel("Anonymised sensor (1-based column number)")
-    fig.suptitle(f"Top 15 sensors, {LAB[headline]} model", fontsize=12)
+    fig.suptitle(f"Top 15 sensors, {LAB[headline]} (most often picked model; descriptive)", fontsize=12)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)
@@ -385,7 +405,9 @@ def main():
         "protocol": {
             "cv": f"RepeatedStratifiedKFold {N_SPLITS}x{N_REPEATS}, random_state={SEED}",
             "inner_tuning": "GridSearchCV 3-fold, scoring roc_auc, on the training part only",
-            "threshold_trainthr": "score threshold at the target FPR of out-of-sample scores on the training part, from cross_val_predict (5-fold) over the whole GridSearchCV(pipeline), so tuning is redone inside every calibration fold; applied unchanged to the test part",
+            "threshold_trainthr": "CV results: score threshold at the target FPR of out-of-sample scores on the training part, from cross_val_predict (5-fold) over the whole GridSearchCV(pipeline), so tuning is redone inside every calibration fold; applied unchanged to the test part",
+            "threshold_time_holdout": f"time-ordered calibration split inside the training period: model tuned and fitted on the earliest {int(CAL_SPLIT * 100)}% of the training wafers, thresholds set on the passing wafers of the latest {int(round((1 - CAL_SPLIT) * 100))}% with that same fitted model; model and thresholds applied unchanged to the test period",
+            "cv_headline": "nested model selection: per outer fold, inner 3-fold CV on the training part picks among L1, L2 and random forest; the outer fold scores the pick (see cv_nested_model_selection)",
             "threshold_roc": "best recall with FPR <= target read off each test part's ROC curve; the threshold is chosen with test labels, so it is not directly comparable with the train-threshold figure, whose realised FPR varies",
             "k_grid": K_GRID, "time_train_fraction": TRAIN_FRAC,
             "std": "sample std across the fold results; folds across repeats overlap, so it is not an independent-sample standard error",
@@ -401,11 +423,36 @@ def main():
         metrics["cv"][name] = summarise(folds)
         curves_cv[name] = mean_curve(folds)
         print(f"CV {name}: AUC {metrics['cv'][name]['roc_auc']['mean']:.3f} ({time.time() - t:.0f}s)")
-    headline = max(MODELS, key=lambda m: metrics["cv"][m]["roc_auc"]["mean"])
-    metrics["headline_model"] = headline
-    metrics["headline_model_rule"] = ("CV results: highest mean ROC-AUC over the 5x5 CV on all wafers; "
-                                      "all 3 models are reported. Not used for the time holdout "
-                                      "(see time_holdout_headline_model)")
+    metrics["cv_per_model_note"] = ("descriptive only: every model scored on the same outer folds; "
+                                    "not used for selection (see cv_nested_model_selection)")
+
+    # CV headline = nested model selection. In every outer fold the model with the
+    # highest inner-CV ROC-AUC (3-fold, on that fold's training part only) is picked
+    # and the outer fold scores only that pick. Folds and seeds are identical across
+    # models, so fold i of each model is the same outer split.
+    names = list(MODELS)
+    nested = []
+    for i in range(len(cv_folds[names[0]])):
+        cand = {nm: cv_folds[nm][i] for nm in names}
+        assert len({c["n_test"] for c in cand.values()}) == 1
+        pick = max(names, key=lambda nm: cand[nm]["inner_cv_roc_auc"])
+        f = dict(cand[pick])
+        f["_picked"] = pick
+        nested.append(f)
+    picks = {nm: sum(f["_picked"] == nm for f in nested) for nm in names}
+    metrics["cv_nested_model_selection"] = {
+        **summarise(nested),
+        "pick_counts": picks,
+        "rule": ("in each outer fold the model with the highest inner 3-fold CV ROC-AUC on that fold's "
+                 "training part is picked (the inner grid search also tunes its hyperparameters); the "
+                 "outer fold scores only the picked model, with thresholds calibrated on the training "
+                 "part as for every other CV result"),
+    }
+    curves_cv["nested"] = mean_curve(nested)
+    print("nested picks", picks, f"AUC {metrics['cv_nested_model_selection']['roc_auc']['mean']:.3f}")
+    # descriptive sensor ranking for the most frequently picked model (ties: higher mean AUC)
+    headline = max(names, key=lambda nm: (picks[nm], metrics["cv"][nm]["roc_auc"]["mean"]))
+    metrics["sensor_ranking_model"] = headline
 
     top = sensor_ranking(cv_folds[headline], p)
     metrics["top15_sensors"] = {"model": headline, "ranking": top}
@@ -439,18 +486,18 @@ def main():
     metrics["time_holdout_top10_sensors"] = {}
     for name in MODELS:
         r = time_holdout(name, X, y, None)
-        r["roc_auc_95ci_bootstrap_test_wafers"] = bootstrap_auc_ci(name, X, y, None)
+        r["roc_auc_95ci_bootstrap_test_wafers"] = bootstrap_auc_ci(r, y)
         th_curves[name] = (np.array(r["_tpr_grid"]), None)
         metrics["time_holdout"][name] = r
         r10 = time_holdout(name, X, y, 10)
         metrics["time_holdout_top10_infold"][name] = r10
         metrics["time_holdout_top10_sensors"][name] = {
-            "final_refit_on_training_period": [f"S{j + 1:03d}" for j in r10["_orig"]],
+            "fit_on_earliest_80pct_of_training_period": [f"S{j + 1:03d}" for j in r10["_orig"]],
             "selection_frequency_over_train_period_cv_top10": top10_selection_report(name, X, y),
         }
         print(f"time holdout {name}: AUC {r['roc_auc']:.3f}")
 
-    chart_roc(curves_cv, th_curves, headline, headline_th, OUT_DIR / "roc_recall_vs_false_alarm.png")
+    chart_roc(curves_cv, th_curves, "nested", headline_th, OUT_DIR / "roc_recall_vs_false_alarm.png")
     chart_sensors(top, headline, OUT_DIR / "top15_sensors.png")
     chart_time(y, ts, OUT_DIR / "fail_rate_over_time.png", n_tr)
 

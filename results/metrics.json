@@ -21,7 +21,9 @@
   "protocol": {
     "cv": "RepeatedStratifiedKFold 5x5, random_state=42",
     "inner_tuning": "GridSearchCV 3-fold, scoring roc_auc, on the training part only",
-    "threshold_trainthr": "score threshold at the target FPR of out-of-sample scores on the training part, from cross_val_predict (5-fold) over the whole GridSearchCV(pipeline), so tuning is redone inside every calibration fold; applied unchanged to the test part",
+    "threshold_trainthr": "CV results: score threshold at the target FPR of out-of-sample scores on the training part, from cross_val_predict (5-fold) over the whole GridSearchCV(pipeline), so tuning is redone inside every calibration fold; applied unchanged to the test part",
+    "threshold_time_holdout": "time-ordered calibration split inside the training period: model tuned and fitted on the earliest 80% of the training wafers, thresholds set on the passing wafers of the latest 20% with that same fitted model; model and thresholds applied unchanged to the test period",
+    "cv_headline": "nested model selection: per outer fold, inner 3-fold CV on the training part picks among L1, L2 and random forest; the outer fold scores the pick (see cv_nested_model_selection)",
     "threshold_roc": "best recall with FPR <= target read off each test part's ROC curve; the threshold is chosen with test labels, so it is not directly comparable with the train-threshold figure, whose realised FPR varies",
     "k_grid": [
       20,
@@ -246,127 +248,192 @@
   },
   "time_holdout": {
     "logreg_l1": {
-      "roc_auc": 0.4923769923769924,
-      "pr_auc": 0.06895334569502397,
-      "n_test": 470,
-      "n_test_fail": 26,
-      "best_params": {
-        "model__C": 0.01,
-        "select__k": 60
-      },
-      "recall_at_fpr10_roc": 0.11538461538461539,
-      "recall_at_fpr10_trainthr": 0.0,
-      "realised_fpr10_trainthr": 0.0022522522522522522,
-      "recall_at_fpr5_roc": 0.038461538461538464,
-      "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0,
-      "n_train": 1097,
-      "n_train_fail": 78,
-      "roc_auc_95ci_bootstrap_test_wafers": [
-        0.37210630506607933,
-        0.6064866785521411
-      ]
-    },
-    "logreg_l2": {
-      "roc_auc": 0.6187629937629937,
-      "pr_auc": 0.11727213166987163,
+      "roc_auc": 0.5355162855162855,
+      "pr_auc": 0.057850681276350346,
       "n_test": 470,
       "n_test_fail": 26,
       "best_params": {
         "model__C": 0.1,
         "select__k": 20
       },
-      "recall_at_fpr10_roc": 0.34615384615384615,
-      "recall_at_fpr10_trainthr": 0.11538461538461539,
-      "realised_fpr10_trainthr": 0.02252252252252252,
-      "recall_at_fpr5_roc": 0.15384615384615385,
-      "recall_at_fpr5_trainthr": 0.038461538461538464,
-      "realised_fpr5_trainthr": 0.006756756756756757,
-      "n_train": 1097,
-      "n_train_fail": 78,
+      "recall_at_fpr10_roc": 0.07692307692307693,
+      "recall_at_fpr10_trainthr": 0.038461538461538464,
+      "realised_fpr10_trainthr": 0.07657657657657657,
+      "recall_at_fpr5_roc": 0.0,
+      "recall_at_fpr5_trainthr": 0.0,
+      "realised_fpr5_trainthr": 0.05405405405405406,
+      "n_fit": 878,
+      "n_fit_fail": 72,
+      "n_calibration": 219,
+      "n_calibration_fail": 6,
+      "n_train_period": 1097,
+      "n_train_period_fail": 78,
       "roc_auc_95ci_bootstrap_test_wafers": [
-        0.48657181330881594,
-        0.7501747073821373
+        0.44259712858926337,
+        0.6322185018539487
+      ]
+    },
+    "logreg_l2": {
+      "roc_auc": 0.5844594594594594,
+      "pr_auc": 0.07071015326663176,
+      "n_test": 470,
+      "n_test_fail": 26,
+      "best_params": {
+        "model__C": 0.1,
+        "select__k": 20
+      },
+      "recall_at_fpr10_roc": 0.11538461538461539,
+      "recall_at_fpr10_trainthr": 0.11538461538461539,
+      "realised_fpr10_trainthr": 0.08333333333333333,
+      "recall_at_fpr5_roc": 0.07692307692307693,
+      "recall_at_fpr5_trainthr": 0.07692307692307693,
+      "realised_fpr5_trainthr": 0.04954954954954955,
+      "n_fit": 878,
+      "n_fit_fail": 72,
+      "n_calibration": 219,
+      "n_calibration_fail": 6,
+      "n_train_period": 1097,
+      "n_train_period_fail": 78,
+      "roc_auc_95ci_bootstrap_test_wafers": [
+        0.4808115558256642,
+        0.6890961143740271
       ]
     },
     "random_forest": {
-      "roc_auc": 0.5925155925155925,
-      "pr_auc": 0.07110597481347308,
+      "roc_auc": 0.5479036729036729,
+      "pr_auc": 0.061947180404348615,
       "n_test": 470,
       "n_test_fail": 26,
       "best_params": {
         "model__min_samples_leaf": 5,
         "select__k": 60
       },
-      "recall_at_fpr10_roc": 0.07692307692307693,
-      "recall_at_fpr10_trainthr": 0.0,
-      "realised_fpr10_trainthr": 0.01126126126126126,
+      "recall_at_fpr10_roc": 0.11538461538461539,
+      "recall_at_fpr10_trainthr": 0.2692307692307692,
+      "realised_fpr10_trainthr": 0.20045045045045046,
       "recall_at_fpr5_roc": 0.0,
-      "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0022522522522522522,
-      "n_train": 1097,
-      "n_train_fail": 78,
+      "recall_at_fpr5_trainthr": 0.07692307692307693,
+      "realised_fpr5_trainthr": 0.09234234234234234,
+      "n_fit": 878,
+      "n_fit_fail": 72,
+      "n_calibration": 219,
+      "n_calibration_fail": 6,
+      "n_train_period": 1097,
+      "n_train_period_fail": 78,
       "roc_auc_95ci_bootstrap_test_wafers": [
-        0.46575242534106676,
-        0.7047123594842081
+        0.443628910789309,
+        0.6452232004431965
       ]
     }
   },
   "time_holdout_top10_infold": {
     "logreg_l1": {
-      "roc_auc": 0.491943866943867,
-      "pr_auc": 0.06883843783743615,
+      "roc_auc": 0.5473839223839223,
+      "pr_auc": 0.05971056071899231,
       "n_test": 470,
       "n_test_fail": 26,
       "best_params": {
-        "model__C": 0.01
+        "model__C": 0.1
       },
-      "recall_at_fpr10_roc": 0.11538461538461539,
-      "recall_at_fpr10_trainthr": 0.0,
-      "realised_fpr10_trainthr": 0.0,
-      "recall_at_fpr5_roc": 0.038461538461538464,
+      "recall_at_fpr10_roc": 0.07692307692307693,
+      "recall_at_fpr10_trainthr": 0.07692307692307693,
+      "realised_fpr10_trainthr": 0.07207207207207207,
+      "recall_at_fpr5_roc": 0.0,
       "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0,
-      "n_train": 1097,
-      "n_train_fail": 78
+      "realised_fpr5_trainthr": 0.0472972972972973,
+      "n_fit": 878,
+      "n_fit_fail": 72,
+      "n_calibration": 219,
+      "n_calibration_fail": 6,
+      "n_train_period": 1097,
+      "n_train_period_fail": 78
     },
     "logreg_l2": {
-      "roc_auc": 0.6813063063063063,
-      "pr_auc": 0.18632234098181272,
+      "roc_auc": 0.5256410256410257,
+      "pr_auc": 0.05624869783560198,
       "n_test": 470,
       "n_test_fail": 26,
       "best_params": {
         "model__C": 0.01
       },
-      "recall_at_fpr10_roc": 0.3076923076923077,
-      "recall_at_fpr10_trainthr": 0.0,
-      "realised_fpr10_trainthr": 0.0,
-      "recall_at_fpr5_roc": 0.19230769230769232,
+      "recall_at_fpr10_roc": 0.038461538461538464,
+      "recall_at_fpr10_trainthr": 0.038461538461538464,
+      "realised_fpr10_trainthr": 0.08108108108108109,
+      "recall_at_fpr5_roc": 0.0,
       "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0,
-      "n_train": 1097,
-      "n_train_fail": 78
+      "realised_fpr5_trainthr": 0.05855855855855856,
+      "n_fit": 878,
+      "n_fit_fail": 72,
+      "n_calibration": 219,
+      "n_calibration_fail": 6,
+      "n_train_period": 1097,
+      "n_train_period_fail": 78
     },
     "random_forest": {
-      "roc_auc": 0.5941614691614692,
-      "pr_auc": 0.09941656967020679,
+      "roc_auc": 0.49185724185724183,
+      "pr_auc": 0.062190596390978924,
       "n_test": 470,
       "n_test_fail": 26,
       "best_params": {
         "model__min_samples_leaf": 5
       },
-      "recall_at_fpr10_roc": 0.19230769230769232,
-      "recall_at_fpr10_trainthr": 0.038461538461538464,
-      "realised_fpr10_trainthr": 0.01126126126126126,
-      "recall_at_fpr5_roc": 0.19230769230769232,
-      "recall_at_fpr5_trainthr": 0.0,
-      "realised_fpr5_trainthr": 0.0022522522522522522,
-      "n_train": 1097,
-      "n_train_fail": 78
+      "recall_at_fpr10_roc": 0.11538461538461539,
+      "recall_at_fpr10_trainthr": 0.11538461538461539,
+      "realised_fpr10_trainthr": 0.12162162162162163,
+      "recall_at_fpr5_roc": 0.038461538461538464,
+      "recall_at_fpr5_trainthr": 0.07692307692307693,
+      "realised_fpr5_trainthr": 0.07882882882882883,
+      "n_fit": 878,
+      "n_fit_fail": 72,
+      "n_calibration": 219,
+      "n_calibration_fail": 6,
+      "n_train_period": 1097,
+      "n_train_period_fail": 78
     }
   },
-  "headline_model": "random_forest",
-  "headline_model_rule": "CV results: highest mean ROC-AUC over the 5x5 CV on all wafers; all 3 models are reported. Not used for the time holdout (see time_holdout_headline_model)",
+  "cv_per_model_note": "descriptive only: every model scored on the same outer folds; not used for selection (see cv_nested_model_selection)",
+  "cv_nested_model_selection": {
+    "n_folds": 25,
+    "roc_auc": {
+      "mean": 0.7302548595294867,
+      "std": 0.040717061977925545
+    },
+    "pr_auc": {
+      "mean": 0.1715337721530823,
+      "std": 0.04683314763380228
+    },
+    "recall_at_fpr10_roc": {
+      "mean": 0.2928571428571428,
+      "std": 0.09321258791455907
+    },
+    "recall_at_fpr10_trainthr": {
+      "mean": 0.2904761904761905,
+      "std": 0.16330944107727985
+    },
+    "realised_fpr10_trainthr": {
+      "mean": 0.10702136612277338,
+      "std": 0.05608782418320842
+    },
+    "recall_at_fpr5_roc": {
+      "mean": 0.158,
+      "std": 0.08297508026858565
+    },
+    "recall_at_fpr5_trainthr": {
+      "mean": 0.1693333333333333,
+      "std": 0.13226135113395482
+    },
+    "realised_fpr5_trainthr": {
+      "mean": 0.05207583337229418,
+      "std": 0.033047013865488584
+    },
+    "pick_counts": {
+      "logreg_l1": 3,
+      "logreg_l2": 2,
+      "random_forest": 20
+    },
+    "rule": "in each outer fold the model with the highest inner 3-fold CV ROC-AUC on that fold's training part is picked (the inner grid search also tunes its hyperparameters); the outer fold scores only the picked model, with thresholds calibrated on the training part as for every other CV result"
+  },
+  "sensor_ranking_model": "random_forest",
   "top15_sensors": {
     "model": "random_forest",
     "ranking": [
@@ -668,17 +735,17 @@
   },
   "time_holdout_top10_sensors": {
     "logreg_l1": {
-      "final_refit_on_training_period": [
+      "fit_on_earliest_80pct_of_training_period": [
         "S022",
-        "S029",
         "S060",
-        "S104",
+        "S065",
+        "S066",
         "S431",
         "S432",
         "S435",
         "S436",
         "S437",
-        "S511"
+        "S438"
       ],
       "selection_frequency_over_train_period_cv_top10": [
         {
@@ -744,17 +811,17 @@
       ]
     },
     "logreg_l2": {
-      "final_refit_on_training_period": [
+      "fit_on_earliest_80pct_of_training_period": [
         "S022",
-        "S029",
         "S060",
-        "S104",
+        "S065",
+        "S066",
         "S431",
         "S432",
         "S435",
         "S436",
         "S437",
-        "S511"
+        "S438"
       ],
       "selection_frequency_over_train_period_cv_top10": [
         {
@@ -820,17 +887,17 @@
       ]
     },
     "random_forest": {
-      "final_refit_on_training_period": [
+      "fit_on_earliest_80pct_of_training_period": [
         "S022",
-        "S029",
         "S060",
-        "S104",
+        "S065",
+        "S066",
         "S431",
         "S432",
         "S435",
         "S436",
         "S437",
-        "S511"
+        "S438"
       ],
       "selection_frequency_over_train_period_cv_top10": [
         {
@@ -896,5 +963,5 @@
       ]
     }
   },
-  "runtime_seconds": 553.8
+  "runtime_seconds": 477.7
 }
