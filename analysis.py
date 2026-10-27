@@ -171,14 +171,16 @@ def recall_at_fpr_oracle(y, s, fpr_t):
 
 def fit_and_eval(pipe, grid, Xtr, ytr, Xte, yte, seed, orig_cols=None):
     """Tune on the training part only, set thresholds on training-part
-    out-of-fold scores only, evaluate on the held-out part."""
+    out-of-sample scores only (tuning nested inside), evaluate on the held-out part."""
     inner = StratifiedKFold(3, shuffle=True, random_state=seed)
     gs = GridSearchCV(pipe, grid, scoring="roc_auc", cv=inner, n_jobs=1, refit=True)
     gs.fit(Xtr, ytr)
     best = gs.best_estimator_
     s_te = score(best, Xte)
-    # thresholds: training-part out-of-fold scores of the tuned pipeline
-    oof = cross_val_predict(clone(best), Xtr, ytr, method=method_for(best),
+    # thresholds: out-of-sample scores on the training part. The whole tuning
+    # estimator (GridSearchCV over the pipeline) is cloned and refitted inside
+    # every calibration fold, so hyperparameters never saw the fold they score.
+    oof = cross_val_predict(clone(gs), Xtr, ytr, method=method_for(best),
                             cv=StratifiedKFold(5, shuffle=True, random_state=seed + 1))
     if oof.ndim == 2:
         oof = oof[:, 1]
@@ -383,7 +385,7 @@ def main():
         "protocol": {
             "cv": f"RepeatedStratifiedKFold {N_SPLITS}x{N_REPEATS}, random_state={SEED}",
             "inner_tuning": "GridSearchCV 3-fold, scoring roc_auc, on the training part only",
-            "threshold_trainthr": "score threshold at the target FPR of out-of-fold scores on the training part (applied unchanged to the test part)",
+            "threshold_trainthr": "score threshold at the target FPR of out-of-sample scores on the training part, from cross_val_predict (5-fold) over the whole GridSearchCV(pipeline), so tuning is redone inside every calibration fold; applied unchanged to the test part",
             "threshold_roc": "best recall with FPR <= target read off each test part's ROC curve; the threshold is chosen with test labels, so it is not directly comparable with the train-threshold figure, whose realised FPR varies",
             "k_grid": K_GRID, "time_train_fraction": TRAIN_FRAC,
             "std": "sample std across the fold results; folds across repeats overlap, so it is not an independent-sample standard error",
