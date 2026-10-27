@@ -1,0 +1,1 @@
+Built a leakage-safe wafer-fail detection analysis on the public UCI SECOM dataset (1,567 wafers, 590 sensors, 104 fails); nested model selection caught 29.0% of fails at a 10.7% false-alarm rate in repeated 5x5 cross-validation, but a time-ordered holdout showed that edge does not hold up (random forest ROC-AUC 0.548), which the write-up reports plainly.
