@@ -1,0 +1,1 @@
+Built a leakage-safe wafer-fail detection analysis on the public UCI SECOM dataset (1,567 wafers, 590 sensors, 104 fails); a random forest caught 30.7% of fails at a 10.0% false-alarm rate in repeated 5x5 cross-validation, but a time-ordered holdout showed that edge does not hold up (ROC-AUC 0.593), which the write-up reports plainly.
