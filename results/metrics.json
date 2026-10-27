@@ -22,7 +22,7 @@
     "cv": "RepeatedStratifiedKFold 5x5, random_state=42",
     "inner_tuning": "GridSearchCV 3-fold, scoring roc_auc, on the training part only",
     "threshold_trainthr": "score threshold at the target FPR of out-of-fold scores on the training part (applied unchanged to the test part)",
-    "threshold_roc": "best recall with FPR <= target read off the test-part ROC curve (optimistic: oracle threshold)",
+    "threshold_roc": "best recall with FPR <= target read off each test part's ROC curve; the threshold is chosen with test labels, so it is not directly comparable with the train-threshold figure, whose realised FPR varies",
     "k_grid": [
       20,
       60
@@ -35,11 +35,11 @@
       "n_folds": 25,
       "roc_auc": {
         "mean": 0.6943973292903116,
-        "std": 0.047338328439402784
+        "std": 0.04732325103504158
       },
       "pr_auc": {
-        "mean": 0.15720948638885318,
-        "std": 0.03326208775794042
+        "mean": 0.15719995370249865,
+        "std": 0.03324566564120628
       },
       "recall_at_fpr10_roc": {
         "mean": 0.25819047619047614,
@@ -141,12 +141,12 @@
     "logreg_l1": {
       "n_folds": 25,
       "roc_auc": {
-        "mean": 0.7023946888587591,
-        "std": 0.06092833473074769
+        "mean": 0.7024012120159671,
+        "std": 0.060925013585780334
       },
       "pr_auc": {
-        "mean": 0.15556830933275556,
-        "std": 0.02695078449414905
+        "mean": 0.1555731472621218,
+        "std": 0.026945135996400006
       },
       "recall_at_fpr10_roc": {
         "mean": 0.2632380952380952,
@@ -246,13 +246,13 @@
   },
   "time_holdout": {
     "logreg_l1": {
-      "roc_auc": 0.49142411642411643,
-      "pr_auc": 0.0690061680233188,
+      "roc_auc": 0.4923769923769924,
+      "pr_auc": 0.06895334569502397,
       "n_test": 470,
       "n_test_fail": 26,
       "best_params": {
         "model__C": 0.01,
-        "select__k": 20
+        "select__k": 60
       },
       "recall_at_fpr10_roc": 0.11538461538461539,
       "recall_at_fpr10_trainthr": 0.0,
@@ -263,8 +263,8 @@
       "n_train": 1097,
       "n_train_fail": 78,
       "roc_auc_95ci_bootstrap_test_wafers": [
-        0.3686538712187531,
-        0.6074499585817585
+        0.37210630506607933,
+        0.6064866785521411
       ]
     },
     "logreg_l2": {
@@ -366,7 +366,7 @@
     }
   },
   "headline_model": "random_forest",
-  "headline_model_rule": "highest mean CV ROC-AUC among the 3 models; all 3 are reported",
+  "headline_model_rule": "CV results: highest mean ROC-AUC over the 5x5 CV on all wafers; all 3 models are reported. Not used for the time holdout (see time_holdout_headline_model)",
   "top15_sensors": {
     "model": "random_forest",
     "ranking": [
@@ -468,61 +468,61 @@
         "sensor": "S060",
         "col_index_1based": 60,
         "selection_frequency": 1.0,
-        "mean_importance": 0.20638008134979396
+        "mean_importance": 0.20638008539811278
       },
       {
         "sensor": "S104",
         "col_index_1based": 104,
         "selection_frequency": 1.0,
-        "mean_importance": 0.09238676318499835
+        "mean_importance": 0.09238848512128546
       },
       {
         "sensor": "S511",
         "col_index_1based": 511,
         "selection_frequency": 1.0,
-        "mean_importance": 0.03011587625893286
+        "mean_importance": 0.03011485939236085
       },
       {
         "sensor": "S029",
         "col_index_1based": 29,
         "selection_frequency": 0.96,
-        "mean_importance": 0.016703448109639703
+        "mean_importance": 0.016704380666875105
       },
       {
         "sensor": "S432",
         "col_index_1based": 432,
         "selection_frequency": 0.96,
-        "mean_importance": 0.015525089296183934
+        "mean_importance": 0.015523762918176007
       },
       {
         "sensor": "S349",
         "col_index_1based": 349,
         "selection_frequency": 0.92,
-        "mean_importance": 0.06751985201418934
+        "mean_importance": 0.06751878459642183
       },
       {
         "sensor": "S435",
         "col_index_1based": 435,
         "selection_frequency": 0.92,
-        "mean_importance": 0.0046340788523098475
+        "mean_importance": 0.0046317123772080995
       },
       {
         "sensor": "S022",
         "col_index_1based": 22,
         "selection_frequency": 0.88,
-        "mean_importance": 0.09199040363794399
+        "mean_importance": 0.091989231274353
       },
       {
         "sensor": "S130",
         "col_index_1based": 130,
         "selection_frequency": 0.88,
-        "mean_importance": 0.06853092575741011
+        "mean_importance": 0.06853025350981662
       },
       {
         "sensor": "S431",
         "col_index_1based": 431,
         "selection_frequency": 0.88,
-        "mean_importance": 0.004778484099127106
+        "mean_importance": 0.004790118437901103
       }
     ],
     "logreg_l2": [
@@ -659,6 +659,13 @@
     "test_fail_rate": 0.05531914893617021,
     "split_timestamp": "2008-09-26T03:29:00"
   },
+  "time_holdout_headline_model": "random_forest",
+  "time_holdout_headline_model_rule": "highest mean ROC-AUC in 5x5 repeated stratified CV on the earliest 1097 (training-period) wafers only; no test-period label is used",
+  "time_holdout_headline_selection_cv_roc_auc": {
+    "logreg_l1": 0.7020820052158794,
+    "logreg_l2": 0.6739350027367269,
+    "random_forest": 0.747831717457098
+  },
   "time_holdout_top10_fixed_from_train_period": {
     "logreg_l1": {
       "roc_auc": 0.5728516978516979,
@@ -742,5 +749,5 @@
       ]
     }
   },
-  "runtime_seconds": 147.3
+  "runtime_seconds": 185.4
 }

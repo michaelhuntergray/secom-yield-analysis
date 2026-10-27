@@ -117,7 +117,8 @@ class ColumnFilter(BaseEstimator, TransformerMixin):
 MODELS = {
     "logreg_l1": (
         lambda: LogisticRegression(l1_ratio=1, solver="liblinear",
-                                   class_weight="balanced", max_iter=2000),
+                                   class_weight="balanced", max_iter=2000,
+                                   random_state=SEED),
         {"model__C": [0.01, 0.1, 1.0]},
     ),
     "logreg_l2": (
@@ -306,14 +307,14 @@ COL = {"logreg_l1": "#1f77b4", "logreg_l2": "#2ca02c", "random_forest": "#d62728
 LAB = {"logreg_l1": "Logistic L1", "logreg_l2": "Logistic L2", "random_forest": "Random forest"}
 
 
-def chart_roc(cv_curves, th_curves, headline, path):
+def chart_roc(cv_curves, th_curves, headline, headline_th, path):
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.8), sharey=True)
-    for ax, title, curves in [
-        (axes[0], f"Repeated stratified {N_SPLITS}-fold CV ({N_SPLITS}x{N_REPEATS}), mean of folds", cv_curves),
-        (axes[1], "Time-ordered holdout (train earliest 70%, test latest 30%)", th_curves),
+    for ax, title, curves, hl in [
+        (axes[0], f"Repeated stratified {N_SPLITS}-fold CV ({N_SPLITS}x{N_REPEATS}), mean of folds", cv_curves, headline),
+        (axes[1], "Time-ordered holdout (train earliest 70%, test latest 30%)", th_curves, headline_th),
     ]:
         for name, (m, sd) in curves.items():
-            lw = 2.6 if name == headline else 1.4
+            lw = 2.6 if name == hl else 1.4
             ax.plot(FPR_GRID, m, color=COL[name], lw=lw, label=LAB[name])
             if sd is not None:
                 ax.fill_between(FPR_GRID, np.clip(m - sd, 0, 1), np.clip(m + sd, 0, 1),
@@ -398,7 +399,7 @@ def main():
             "cv": f"RepeatedStratifiedKFold {N_SPLITS}x{N_REPEATS}, random_state={SEED}",
             "inner_tuning": "GridSearchCV 3-fold, scoring roc_auc, on the training part only",
             "threshold_trainthr": "score threshold at the target FPR of out-of-fold scores on the training part (applied unchanged to the test part)",
-            "threshold_roc": "best recall with FPR <= target read off the test-part ROC curve (optimistic: oracle threshold)",
+            "threshold_roc": "best recall with FPR <= target read off each test part's ROC curve; the threshold is chosen with test labels, so it is not directly comparable with the train-threshold figure, whose realised FPR varies",
             "k_grid": K_GRID, "time_train_fraction": TRAIN_FRAC,
             "std": "sample std across the fold results; folds across repeats overlap, so it is not an independent-sample standard error",
         },
@@ -415,7 +416,9 @@ def main():
         print(f"CV {name}: AUC {metrics['cv'][name]['roc_auc']['mean']:.3f} ({time.time() - t:.0f}s)")
     headline = max(MODELS, key=lambda m: metrics["cv"][m]["roc_auc"]["mean"])
     metrics["headline_model"] = headline
-    metrics["headline_model_rule"] = "highest mean CV ROC-AUC among the 3 models; all 3 are reported"
+    metrics["headline_model_rule"] = ("CV results: highest mean ROC-AUC over the 5x5 CV on all wafers; "
+                                      "all 3 models are reported. Not used for the time holdout "
+                                      "(see time_holdout_headline_model)")
 
     top = sensor_ranking(cv_folds[headline], p)
     metrics["top15_sensors"] = {"model": headline, "ranking": top}
@@ -434,6 +437,17 @@ def main():
                              "train_fail_rate": float(y[:n_tr].mean()),
                              "test_fail_rate": float(y[n_tr:].mean()),
                              "split_timestamp": str(ts[n_tr])[:19]}
+    # holdout headline model: chosen by CV on the training-period wafers only,
+    # so no label from the test period influences the choice
+    n_tr_sel = int(round(TRAIN_FRAC * n))
+    sel_auc = {nm: summarise(run_cv(nm, X[:n_tr_sel], y[:n_tr_sel]))["roc_auc"]["mean"]
+               for nm in MODELS}
+    headline_th = max(sel_auc, key=sel_auc.get)
+    metrics["time_holdout_headline_model"] = headline_th
+    metrics["time_holdout_headline_model_rule"] = (
+        f"highest mean ROC-AUC in {N_SPLITS}x{N_REPEATS} repeated stratified CV on the earliest "
+        f"{n_tr_sel} (training-period) wafers only; no test-period label is used")
+    metrics["time_holdout_headline_selection_cv_roc_auc"] = sel_auc
     th_curves = {}
     metrics["time_holdout_top10_fixed_from_train_period"] = {}
     for name in MODELS:
@@ -445,7 +459,7 @@ def main():
         metrics["time_holdout_top10_fixed_from_train_period"][name] = fixed_top10_holdout(name, X, y)
         print(f"time holdout {name}: AUC {r['roc_auc']:.3f}")
 
-    chart_roc(curves_cv, th_curves, headline, OUT_DIR / "roc_recall_vs_false_alarm.png")
+    chart_roc(curves_cv, th_curves, headline, headline_th, OUT_DIR / "roc_recall_vs_false_alarm.png")
     chart_sensors(top, headline, OUT_DIR / "top15_sensors.png")
     chart_time(y, ts, OUT_DIR / "fail_rate_over_time.png", n_tr)
 

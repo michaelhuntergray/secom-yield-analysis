@@ -11,16 +11,16 @@ Repeated stratified 5x5 CV as primary, time-ordered 70/30 holdout as secondary. 
 **Status:** verified. Both are in `results/metrics.json`; they disagree strongly (CV ROC-AUC 0.736 vs 0.593 for the random forest).
 
 ## 3. Thresholds from training data, with the oracle number shown separately
-Headline recall at a fixed false-alarm rate uses a threshold from out-of-fold training scores, and the realised false-alarm rate is reported. The test-ROC-curve recall is also kept but labelled optimistic. Rejected: reporting only the ROC-curve number, which flatters the result.
+Headline recall at a fixed false-alarm rate uses a threshold from out-of-fold training scores, and the realised false-alarm rate is reported. The test-ROC-curve recall is also kept, described as threshold-chosen-with-test-labels and not directly comparable (an earlier draft called it an upper bound; the metrics contradict that, since L1 CV scores 25.8% by ROC curve and 28.9% by train threshold). Rejected: reporting only the ROC-curve number.
 **Status:** verified. Fields `*_trainthr` and `*_roc` in `results/metrics.json`.
 
 ## 4. Models and grids kept small
 L1 and L2 logistic regression and a random forest, `class_weight` for imbalance, tiny grids. SMOTE not tried (not needed to answer the question, adds a moving part). Consequence: results may move with a larger search; stated in the README.
 **Status:** verified. `MODELS` and `K_GRID` in `analysis.py`.
 
-## 5. Headline model picked by CV ROC-AUC
-The model shown as headline is the one with the best mean CV ROC-AUC, a different metric from the headline recall, and all three models are reported. Rejected: picking by the headline recall itself, which would select on the quantity being reported.
-**Status:** verified. `headline_model_rule` in `results/metrics.json`.
+## 5. Headline model picked by CV ROC-AUC, separately for CV and for the holdout
+The CV headline is the model with the best mean ROC-AUC over the 5x5 CV on all wafers, a different metric from the headline recall; all three models are reported. Rejected: picking by the headline recall itself. Review (Codex) found that this choice used labels from the 470 holdout wafers, so the holdout headline is chosen separately, by 5x5 CV on the earliest 1,097 wafers only. Both picked the random forest.
+**Status:** verified. `headline_model_rule`, `time_holdout_headline_model` and `time_holdout_headline_model_rule` in `results/metrics.json`.
 
 ## 6. Two clean top-10 tests instead of one
 A top-10 chosen from full-data CV and re-tested on the same data would be optimistic. So: (a) k=10 fixed inside every fold; (b) ten sensors ranked using only the training period, then tested on the later period. Consequence: the top-10 claim is limited to CV, and fails in the time-ordered test.
@@ -31,8 +31,8 @@ The time-ordered holdout shows near-chance performance. The README leads with bo
 **Status:** verified. README "Headline" and `results/metrics.json` `time_holdout`.
 
 ## 8. Reproducibility
-Pinned versions in `requirements.txt`, fixed seed 42, runtime download into a gitignored `data/`. A fresh venv produced identical metrics on two runs (147 to 150 seconds on 16 cores).
-**Status:** verified. Two full runs from a clean `.venv` matched on every CV and holdout ROC-AUC printed.
+Pinned versions in `requirements.txt`, fixed seed 42, runtime download into a gitignored `data/`. The first version was not fully deterministic: liblinear (L1 logistic) had no random_state and its holdout ROC-AUC moved in the third decimal between runs. Fixed by seeding it. Two full runs afterwards produced identical `results/metrics.json` apart from runtime (about 185 seconds on 16 cores).
+**Status:** verified. Dictionary comparison of two runs' metrics, runtime excluded.
 
 ## 9. A scikit-learn deprecation fixed
 The first run emitted `penalty` deprecation warnings under scikit-learn 1.9; switched to `l1_ratio`. Metrics were unchanged.

@@ -7,7 +7,7 @@
 **Result.**
 - Cross-validation: the random forest caught 30.7% of fails at a 10.0% false-alarm rate (std 10.2 points across 25 folds), and 18.9% at 5%. A random flagger catches 10% at a 10% false-alarm rate, so this is about three times better than chance, with ROC-AUC 0.736 and PR-AUC 0.183 against a 0.066 base rate.
 - Ten sensors chosen inside the folds did about as well in cross-validation (random forest: 27.5% of fails at a 9.4% realised false-alarm rate).
-- Time-ordered holdout (26 fails in the test period): ROC-AUC 0.491, 0.619 and 0.593 for L1, L2 and the random forest, with bootstrap intervals that include 0.5 for all three. Thresholds set on training data caught 0.0%, 3.8% and 0.0% of fails. I could not show a usable detector once time order is respected.
+- Time-ordered holdout (26 fails in the test period): ROC-AUC 0.492, 0.619 and 0.593 for L1, L2 and the random forest, with bootstrap intervals that include 0.5 for all three. The random forest is the holdout headline model, chosen by cross-validation on the training period only. Thresholds set on training data caught 0.0%, 3.8% and 0.0% of fails. I could not show a usable detector once time order is respected.
 
 **What it would mean on a fab line.** A flagger that finds a third of excursions at a 1-in-10 false-alarm cost could, if it held up, prioritise metrology or sampling. These results say it would not hold up unless it is retrained and monitored as the process drifts, and that sensor-level conclusions need domain knowledge: the sensors are anonymised, so a ranking such as S060, S104 and S130 (selected in every CV fold) is a place to look, not a root cause. Cross-validation alone would have overstated the result; the time-ordered test is what caught that.
 
